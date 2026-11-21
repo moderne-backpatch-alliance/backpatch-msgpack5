@@ -16,6 +16,7 @@ function msgpack (options) {
     forceFloat64: false,
     compatibilityMode: false,
     disableTimestampEncoding: false, // if true, skips encoding Dates using the msgpack timestamp ext format (-1)
+    maxDepth: 100,
     // options.protoAction: 'error' (default) / 'remove' / 'ignore'
     protoAction: 'error'
   }
@@ -105,6 +106,11 @@ function IncompleteBufferError (message) {
 util.inherits(IncompleteBufferError, Error)
 
 module.exports = function buildDecode (decodingTypes, options) {
+  var maxDepth = options.maxDepth === undefined ? 100 : options.maxDepth
+  if (!Number.isInteger(maxDepth) || maxDepth < 0) {
+    throw new TypeError('maxDepth must be a non-negative integer')
+  }
+
   return decode
 
   function getSize (first) {
@@ -194,7 +200,7 @@ module.exports = function buildDecode (decodingTypes, options) {
     try {
       result = decodeState
         ? tryDecodeIncremental(buf, decodeState)
-        : tryDecode(buf)
+        : tryDecode(buf, 0, 0)
     } catch (err) {
       if (decodeState) decodeState.stack.length = 0
       throw err
@@ -216,6 +222,9 @@ module.exports = function buildDecode (decodingTypes, options) {
       if (container === null) return null
 
       if (container) {
+        if (state.stack.length + 1 > maxDepth) {
+          throw new Error('Maximum decode depth exceeded')
+        }
         buf.consume(container.headerLength)
 
         var itemCount = container.type === 'map'
@@ -236,7 +245,7 @@ module.exports = function buildDecode (decodingTypes, options) {
           ? buildMap([], 0)
           : []
       } else {
-        var result = tryDecode(buf, 0)
+        var result = tryDecode(buf, 0, state.stack.length)
         if (!result) return null
 
         buf.consume(result.bytesConsumed)
@@ -310,7 +319,7 @@ module.exports = function buildDecode (decodingTypes, options) {
     return object
   }
 
-  function tryDecode (buf, offset) {
+  function tryDecode (buf, offset, depth) {
     offset = offset === undefined ? 0 : offset
     var bufLength = buf.length - offset
     if (bufLength <= 0) {
@@ -431,7 +440,7 @@ module.exports = function buildDecode (decodingTypes, options) {
         }
 
         length = buf.readUInt16BE(offset + 1)
-        return decodeArray(buf, offset, length, 3)
+        return decodeArray(buf, offset, length, 3, depth + 1)
       case 0xdd:
         // array up to 2^32 elements - 4 bytes
         if (bufLength < 5) {
@@ -439,14 +448,14 @@ module.exports = function buildDecode (decodingTypes, options) {
         }
 
         length = buf.readUInt32BE(offset + 1)
-        return decodeArray(buf, offset, length, 5)
+        return decodeArray(buf, offset, length, 5, depth + 1)
       case 0xde:
         // maps up to 2^16 elements - 2 bytes
         length = buf.readUInt16BE(offset + 1)
-        return decodeMap(buf, offset, length, 3)
+        return decodeMap(buf, offset, length, 3, depth + 1)
       case 0xdf:
         length = buf.readUInt32BE(offset + 1)
-        return decodeMap(buf, offset, length, 5)
+        return decodeMap(buf, offset, length, 5, depth + 1)
       case 0xd4:
         return decodeFixExt(buf, offset, 1)
       case 0xd5:
@@ -486,11 +495,11 @@ module.exports = function buildDecode (decodingTypes, options) {
     if ((first & 0xf0) === 0x90) {
       // we have an array with less than 15 elements
       length = first & 0x0f
-      return decodeArray(buf, offset, length, 1)
+      return decodeArray(buf, offset, length, 1, depth + 1)
     } else if ((first & 0xf0) === 0x80) {
       // we have a map with less than 15 elements
       length = first & 0x0f
-      return decodeMap(buf, offset, length, 1)
+      return decodeMap(buf, offset, length, 1, depth + 1)
     } else if ((first & 0xe0) === 0xa0) {
       // fixstr up to 31 bytes
       length = first & 0x1f
@@ -525,14 +534,17 @@ module.exports = function buildDecode (decodingTypes, options) {
     return (hi * 4294967296 + lo) * (negate ? -1 : +1)
   }
 
-  function decodeArray (buf, offset, length, headerLength) {
+  function decodeArray (buf, offset, length, headerLength, depth) {
+    if (depth > maxDepth) {
+      throw new Error('Maximum decode depth exceeded')
+    }
     var result = []
     var i
     var totalBytesConsumed = 0
 
     offset += headerLength
     for (i = 0; i < length; i++) {
-      var decodeResult = tryDecode(buf, offset)
+      var decodeResult = tryDecode(buf, offset, depth)
       if (decodeResult) {
         result.push(decodeResult.value)
         offset += decodeResult.bytesConsumed
@@ -544,7 +556,10 @@ module.exports = function buildDecode (decodingTypes, options) {
     return buildDecodeResult(result, headerLength + totalBytesConsumed)
   }
 
-  function decodeMap (buf, offset, length, headerLength) {
+  function decodeMap (buf, offset, length, headerLength, depth) {
+    if (depth > maxDepth) {
+      throw new Error('Maximum decode depth exceeded')
+    }
     var result = {}
     var key
     var i
@@ -552,10 +567,10 @@ module.exports = function buildDecode (decodingTypes, options) {
 
     offset += headerLength
     for (i = 0; i < length; i++) {
-      var keyResult = tryDecode(buf, offset)
+      var keyResult = tryDecode(buf, offset, depth)
       if (keyResult) {
         offset += keyResult.bytesConsumed
-        var valueResult = tryDecode(buf, offset)
+        var valueResult = tryDecode(buf, offset, depth)
         if (valueResult) {
           key = keyResult.value
 
