@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 4.5.2-backpatch-00005
+release: 4.5.2-backpatch-00006
 baseline: v4.5.1+backpatch.baseline
 fixes:
   - cve: CVE-2026-107296
@@ -42,12 +42,20 @@ fixes:
     basis: adapted
     artifacts:
       - msgpack5
-    note: "New in this release; upstream's fix in 6.1.0, adapted to 4.5.1. It closes the advisory: msgpack5: Partial options disable prototype protection."
+    note: "Carried from 4.5.2-backpatch-00005; upstream's fix in 6.1.0, adapted to 4.5.1. It closes the advisory: msgpack5: Partial options disable prototype protection."
+  - cve: CVE-2026-107302
+    upstream_fix_url: https://github.com/mcollina/msgpack5/commit/15443a1f2aa682a6aa37f1705ac628de5b866ad1
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-107302
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-msgpack5/compare/0335a95~1...86273a0
+    basis: adapted
+    artifacts:
+      - msgpack5
+    note: "New in this release; upstream's fix in 6.1.0, adapted to 4.5.1. It closes the advisory: msgpack5: Truncated map32 headers throw an unexpected error."
 tests:
-  commit: 8b1d28a88331d51e27a5fc29aa5eaded4b83c7d0
+  commit: 86273a0f09ed6691cc010b068fe145c7d5600804
   command: npm install --ignore-scripts at the tag (upstream has no lockfile), browserify index.js -s msgpack5 and uglify-js into dist/ under Node 10, npm pack --ignore-scripts, then each of the tested commit's test/ files run alone with tape under Node 10 against the packed package, each assertion recorded into the JUnit report
   runtime: Node.js v10.24.1 (build, tests) and v22.23.2 (npm 10.9.8, pack), browserify 16.5.2, uglify-js 3.19.3, tape 4.17.0, macOS 27.2 arm64
-  report: msgpack5-4.5.2-backpatch-00005-tests.zip
-  report_sha256: 942b2ce937dfe0d6f2b1ed362c77c1a62d7812ca35b640fe4fb1ced6f247b4da
+  report: msgpack5-4.5.2-backpatch-00006-tests.zip
+  report_sha256: 625099897d5c6027b628d007722964a40865e9b826454d2cb57808f277fddf17
   result: pass
-  note: "upstream's tape suite (every test/ file, each alone under Node 10) against the packed package at the tested commit: 4201 tests, 4201 passed, 0 failed, 0 skipped. dist/ is rebuilt from lib/ because npmjs's 4.5.1 dist/ bundle was stale. The CVE tests (test/object-prototype-poisoning.js), with this release's production lines reverted at the tested commit: 20 tests, 9 passed, 11 failed, 0 skipped; with them: 20 tests, 20 passed, 0 failed, 0 skipped. Built with browserify and uglify-js under Node 10 (package.json's build), npm pack --ignore-scripts in a directory named msgpack5, 54 of npmjs's 64 files for 4.5.1 are identical; the rest are README.md, dist/msgpack5.js, dist/msgpack5.min.js, index.js, lib/decoder.js, lib/streams.js, package.json, test/64-bits-signed-integers.js, test/object-prototype-poisoning.js, test/streams.js. The archive's file-origins.yaml maps each packaged file to the commit, or names its inputs and build."
+  note: "upstream's tape suite (every test/ file, each alone under Node 10) against the packed package at the tested commit: 4212 tests, 4212 passed, 0 failed, 0 skipped. dist/ is rebuilt from lib/ because npmjs's 4.5.1 dist/ bundle was stale. The CVE tests (test/4-bytes-length-maps.js test/streams.js), with this release's production lines reverted at the tested commit: 36 tests, 32 passed, 4 failed, 0 skipped; with them: 36 tests, 36 passed, 0 failed, 0 skipped. Built with browserify and uglify-js under Node 10 (package.json's build), npm pack --ignore-scripts in a directory named msgpack5, 54 of npmjs's 64 files for 4.5.1 are identical; the rest are README.md, dist/msgpack5.js, dist/msgpack5.min.js, index.js, lib/decoder.js, lib/streams.js, package.json, test/64-bits-signed-integers.js, test/object-prototype-poisoning.js, test/streams.js. The archive's file-origins.yaml maps each packaged file to the commit, or names its inputs and build."
