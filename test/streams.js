@@ -220,6 +220,24 @@ test('incomplete containers resume without decoding elements again', function (t
   t.ok(maxBuffered <= 6, 'only the current incomplete value remains buffered')
   decoder.end()
 })
+
+test('many concatenated values do not overflow the stack', function (t) {
+  t.plan(2)
+
+  var total = 50000
+  var decoder = msgpack().decoder()
+  var decoded = 0
+
+  decoder.on('data', function () {
+    decoded++
+  })
+
+  decoder.write(Buffer.alloc(total, 0x01), function (err) {
+    t.error(err, 'must decode without an error')
+    t.equal(decoded, total, 'must decode every value')
+  })
+})
+
 test('nil processing works', function (t) {
   t.plan(3)
 
