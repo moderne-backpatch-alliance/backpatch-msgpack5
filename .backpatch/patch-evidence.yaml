@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 4.5.2-backpatch-00002
+release: 4.5.2-backpatch-00003
 baseline: v4.5.1+backpatch.baseline
 fixes:
   - cve: CVE-2026-107296
@@ -18,12 +18,20 @@ fixes:
     basis: adapted
     artifacts:
       - msgpack5
-    note: "New in this release; upstream's fix in 6.1.0, adapted to 4.5.1. It closes the advisory: msgpack5: Quadratic parsing in the streaming decoder."
+    note: "Carried from 4.5.2-backpatch-00002; upstream's fix in 6.1.0, adapted to 4.5.1. It closes the advisory: msgpack5: Quadratic parsing in the streaming decoder."
+  - cve: CVE-2026-107298
+    upstream_fix_url: https://github.com/mcollina/msgpack5/commit/1e2b5874e555dd7c99417f64788a03b0590bb102
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-107298
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-msgpack5/compare/51b1dc6~1...34f55fa
+    basis: adapted
+    artifacts:
+      - msgpack5
+    note: "New in this release; upstream's fix in 6.1.0, adapted to 4.5.1. It closes the advisory: msgpack5: Deeply nested input can exhaust the decoder stack."
 tests:
-  commit: ecb1c6aecef5f906ceb132d1a0407ef403a0ddba
+  commit: 34f55fa6957812467c172763ac3fabdfe9601089
   command: npm install --ignore-scripts at the tag (upstream has no lockfile), browserify index.js -s msgpack5 and uglify-js into dist/ under Node 10, npm pack --ignore-scripts, then each of the tested commit's test/ files run alone with tape under Node 10 against the packed package, each assertion recorded into the JUnit report
   runtime: Node.js v10.24.1 (build, tests) and v22.23.2 (npm 10.9.8, pack), browserify 16.5.2, uglify-js 3.19.3, tape 4.17.0, macOS 27.2 arm64
-  report: msgpack5-4.5.2-backpatch-00002-tests.zip
-  report_sha256: 2e6e2685443a1fe4b8f72d3e5a48d75524975111d08f5970d9233ab97906878d
+  report: msgpack5-4.5.2-backpatch-00003-tests.zip
+  report_sha256: e89c0bdf4a76b86b0dd8836ec6a1bd78afb75503e256151aff9def038f5c8fea
   result: pass
-  note: "upstream's tape suite (every test/ file, each alone under Node 10) against the packed package at the tested commit: 4165 tests, 4165 passed, 0 failed, 0 skipped. dist/ is rebuilt from lib/ because npmjs's 4.5.1 dist/ bundle was stale. The CVE tests (test/streams.js), with this release's production lines reverted at the tested commit: 23 tests, 21 passed, 2 failed, 0 skipped; with them: 23 tests, 23 passed, 0 failed, 0 skipped. Built with browserify and uglify-js under Node 10 (package.json's build), npm pack --ignore-scripts in a directory named msgpack5, 57 of npmjs's 64 files for 4.5.1 are identical; the rest are dist/msgpack5.js, dist/msgpack5.min.js, lib/decoder.js, lib/streams.js, package.json, test/64-bits-signed-integers.js, test/streams.js. The archive's file-origins.yaml maps each packaged file to the commit, or names its inputs and build."
+  note: "upstream's tape suite (every test/ file, each alone under Node 10) against the packed package at the tested commit: 4182 tests, 4182 passed, 0 failed, 0 skipped. dist/ is rebuilt from lib/ because npmjs's 4.5.1 dist/ bundle was stale. The CVE tests (test/max-depth.js), with this release's production lines reverted at the tested commit: 16 tests, 4 passed, 12 failed, 0 skipped; with them: 17 tests, 17 passed, 0 failed, 0 skipped. Built with browserify and uglify-js under Node 10 (package.json's build), npm pack --ignore-scripts in a directory named msgpack5, 55 of npmjs's 64 files for 4.5.1 are identical; the rest are README.md, dist/msgpack5.js, dist/msgpack5.min.js, index.js, lib/decoder.js, lib/streams.js, package.json, test/64-bits-signed-integers.js, test/streams.js. The archive's file-origins.yaml maps each packaged file to the commit, or names its inputs and build."
