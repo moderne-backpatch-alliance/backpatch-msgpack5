@@ -183,6 +183,43 @@ test('concatenated buffers work', function (t) {
   encoder.end()
 })
 
+test('incomplete containers resume without decoding elements again', function (t) {
+  t.plan(3)
+
+  var pack = msgpack()
+  var decoder = pack.decoder()
+  var values = []
+  var decodeCalls = 0
+  var maxBuffered = 0
+
+  function MyType (value) {
+    this.value = value
+  }
+
+  pack.register(0x42, MyType, function (obj) {
+    return Buffer.from([obj.value])
+  }, function (buf) {
+    decodeCalls++
+    return buf.readUInt8(0)
+  })
+
+  for (var i = 0; i < 100; i++) {
+    values.push(new MyType(i))
+  }
+
+  decoder.on('data', function (result) {
+    t.deepEqual(result, { values: values.map(function (value) { return value.value }) })
+    t.equal(decodeCalls, values.length, 'each completed element is decoded once')
+  })
+
+  var encoded = pack.encode({ values: values })
+  for (var j = 0; j < encoded.length; j++) {
+    decoder.write(encoded.slice(j, j + 1))
+    maxBuffered = Math.max(maxBuffered, decoder._chunks.length)
+  }
+  t.ok(maxBuffered <= 6, 'only the current incomplete value remains buffered')
+  decoder.end()
+})
 test('nil processing works', function (t) {
   t.plan(3)
 
