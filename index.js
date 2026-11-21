@@ -15,6 +15,7 @@ function msgpack (options) {
     forceFloat64: false,
     compatibilityMode: false,
     disableTimestampEncoding: false, // if true, skips encoding Dates using the msgpack timestamp ext format (-1)
+    maxDepth: 100,
     // options.protoAction: 'error' (default) / 'remove' / 'ignore'
     protoAction: 'error'
   }
